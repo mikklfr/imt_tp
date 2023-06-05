@@ -1,20 +1,15 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:imt_tp/http_client.dart';
 
-class Counter {
-  int value = 0;
+// TODO extract to a separate file and class
+Future<List<Post>> getData() async => RestClient(Dio()).getPosts();
 
-  Counter(this.value);
-}
+class CounterCubit extends Cubit<List<Post>> {
+  CounterCubit() : super([]);
 
-class CounterCubit extends Cubit<Counter> {
-  CounterCubit() : super(Counter(0));
-
-  void increment() => emit(Counter(state.value + 1));
-
-  void decrement() => emit(Counter(state.value - 1));
-
-  void reset() => emit(Counter(0));
+  void increment() async => emit(await getData());
 }
 
 class CounterPage extends StatelessWidget {
@@ -22,19 +17,23 @@ class CounterPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cubit = context.read<CounterCubit>();
-
-    return BlocBuilder<CounterCubit, Counter>(
-      builder: (context, state) => Column(
-        children: [
-          Center(
-            child: Text('${state.value}'),
-          ),
-          ElevatedButton(onPressed: () {
-            cubit.increment();
-          }, child: Text('Increment')),
-        ],
-      ),
+    // TODO replace with BlocBuilder and BlocProvider
+    return FutureBuilder(
+      future: getData(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          final data = snapshot.data!;
+          return ListView.builder(
+              itemCount: data.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(data[index].title),
+                );
+              });
+        } else {
+          return const Text('...');
+        }
+      },
     );
   }
 }
@@ -48,7 +47,7 @@ class MyHomePage extends StatelessWidget {
       body: SafeArea(
         child: BlocProvider(
           create: (_) => CounterCubit(),
-          child: CounterPage(),
+          child: const CounterPage(),
         ),
       ),
     );
